@@ -31,7 +31,12 @@ class Movie
     /**
      * @var string
      */
-    protected $processedExtension = 'png';
+    protected $processedExtensionImage = 'png';
+
+    /**
+     * @var string
+     */
+    protected $processedExtensionVideo = 'avi';
 
     /**
      * @var Audio[]
@@ -164,17 +169,17 @@ class Movie
     /**
      * @return string
      */
-    public function getProcessedExtension(): string
+    public function getProcessedExtensionImage(): string
     {
-        return $this->processedExtension;
+        return $this->processedExtensionImage;
     }
 
     /**
-     * @param string $processedExtension
+     * @param string processedExtensionImage
      */
-    public function setProcessedExtension(string $processedExtension)
+    public function setProcessedExtensionImage(string $processedExtensionImage)
     {
-        $this->processedExtension = $processedExtension;
+        $this->processedExtensionImage = $processedExtensionImage;
     }
 
     /**
@@ -191,6 +196,22 @@ class Movie
     public function setOutputFile(string $outputFile)
     {
         $this->outputFile = $outputFile;
+    }
+
+    /**
+     * @return string
+     */
+    public function getProcessedExtensionVideo(): string
+    {
+        return $this->processedExtensionVideo;
+    }
+
+    /**
+     * @param string $processedExtensionVideo
+     */
+    public function setProcessedExtensionVideo(string $processedExtensionVideo)
+    {
+        $this->processedExtensionVideo = $processedExtensionVideo;
     }
 
 

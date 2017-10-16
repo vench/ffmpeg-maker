@@ -98,8 +98,8 @@ abstract class Input
      */
     public function getFilePathExt($exc = 'png') {
         $file = $this->getFilePath();
-        if(preg_match('/.+\/.+\.([a-zA-Z]{2,})/', $file, $math) && isset($math[1])) {
-            return str_replace($math[1], $exc, $file);
+        if(preg_match('/.+\/.+\.([a-zA-Z0-9]{2,4})/', $file, $math) && isset($math[1])) {
+            return str_replace('.' .$math[1], $this->getName() . '.' . $exc, $file);
         }
         return $file;
     }

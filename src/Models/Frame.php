@@ -12,7 +12,7 @@ namespace LpMovieMaker\Models;
  * Class Frame
  * @package LpMovieMaker\Models
  */
-class Frame extends Input
+abstract class Frame extends Input
 {
 
 
@@ -89,5 +89,19 @@ class Frame extends Input
     public function isProcessed() {
         return $this->processed;
     }
+
+
+    /**
+     * @param Movie $movie
+     * @return string
+     */
+    abstract public function getProcessedFile(Movie $movie);
+
+
+    /**
+     * @param Movie $movie
+     * @return string
+     */
+    abstract public function getProcessedCommand(Movie $movie);
 
 }

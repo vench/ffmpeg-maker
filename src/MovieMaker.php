@@ -13,6 +13,7 @@ use LpMovieMaker\Models\Audio;
 use LpMovieMaker\Models\Frame;
 use LpMovieMaker\Models\Movie;
 use LpMovieMaker\Models\Text;
+use LpMovieMaker\Models\VideoFrame;
 
 class MovieMaker
 {
@@ -47,12 +48,12 @@ class MovieMaker
     public function build() {
         $movie = $this->getMovie();
         foreach ($movie->getFrames() as $frame) {
-            $command = $this->getProcessedCommand($frame);
-            if($command) {
+            if(!empty($command = $frame->getProcessedCommand($movie))) {
                 $this->exec($command);
                 $frame->setProcessed(true);
             }
         }
+
 
         $command = $this->getMoveCommand();
         $this->exec($command);
@@ -65,46 +66,7 @@ class MovieMaker
         }
     }
 
-    /**
-     * @param Frame $frame
-     * @return null|string
-     */
-    public function getProcessedCommand(Frame $frame){
-        $movie = $this->getMovie();
 
-        //TODO ['setsar=1:1', 'setdar=4:3'] to options
-        $filters = ['setsar=1:1', 'setdar=4:3'];
-        if($movie->needResize()) {
-            $filters[] = "scale={$movie->getWidth()}:{$movie->getHeight()}";
-        }
-
-        if(!is_null($text = $frame->getText())) {
-            $values = $text->isWrap() ? explode("\n", $text->getValue()) : [$text->getValue()];
-            $posY =  $text->getPosY();
-            foreach ($values as $value) {
-                $value = trim($value);
-                $fontfile = $text->getFontLink() ? "fontfile={$text->getFontLink()}:" : '';
-                $fontcolor = $text->getColor() ? ":fontcolor={$text->getColor()}" : '';
-                $fontsize = $text->getColor() ? ":fontsize={$text->getFontSize()}" : '';
-                $x = $text->getPosX() ? ":x={$text->getPosX()}" : '';
-                $y = $posY ? ":y={$posY}" : '';
-                $drawtext = "drawtext={$fontfile}text='{$value}'{$fontcolor}{$fontsize}{$x}{$y}";
-                $filters[] = $drawtext;
-                $posY += ($text->getFontSize() ? $text->getFontSize() : 0) + 15;
-            }
-        }
-
-        if(empty($filters)) {
-            return null;
-        }
-
-        $command = self::PROGRAM_NAME;
-        $command .= " -i {$frame->getFilePath()} ";
-        $command .= '-vf "'. join(',', $filters) .'" ';
-        $command .= "-y {$frame->getFilePathExt($movie->getProcessedExtension())}";
-
-        return $command;
-    }
 
     /**
      * @param string $outputFile
@@ -140,35 +102,79 @@ class MovieMaker
         $movie = $this->getMovie();
 
         $effects = [];
+        $count = 0;
 
-        foreach ($movie->getFrames() as $n => $frame) {
-            $file = $frame->isProcessed() ?
-                $frame->getFilePathExt($movie->getProcessedExtension()) : $frame->getFilePath();
-            $buffer .= " -loop 1 -t {$frame->getDuration()} -i {$file} ";
+        $fun = function() use(&$buffer, &$effects, &$movie, &$count) {
+            $buffer .= " -filter_complex \"";
+
+            if(!empty($effects)) {
+                $buffer .= join('', $effects) . ' ';
+                $buffer .= join('', array_keys($effects));
+            }
+
+            //TODO format=yuv420p to vars
+            $buffer .="concat=n={$count}:v=1:a=0,format=yuv420p[v]\" ";
+
+
+            $video =  new VideoFrame([
+                'filePath' => $movie->getOutputFile(),
+            ]);
+
+            $buffer .= '-map "[v]" ';
+            $buffer .= "-y {$video->getFilePathExt($movie->getProcessedExtensionVideo())}";
+            $this->exec($buffer);
+            $video->setProcessed(true);
+
+            $effects = [];
+            $buffer = self::PROGRAM_NAME;
+            $count = 0;
+
+            return $video;
+        };
+
+        $movies = [];
+
+
+        foreach ($movie->getFrames() as $frame) {
+
+            if($frame instanceof VideoFrame) {
+                if($count > 0) {
+                    $movies[] = $fun();
+                }
+
+                $movies[] = $frame;
+                continue;
+            }
+
+            $count ++;
+
+            $buffer .= " -loop 1 -t {$frame->getDuration()} -i {$frame->getProcessedFile($movie)} ";
 
             $efs = [];
             foreach($frame->getEffects() as $ef) {
                 $efs[] = $ef->getCommands();
             }
             if(!empty($efs)) {
+                $n = count($effects);
                 $effects['[v' . $n.']'] = '['.$n.':v]' . join(',', $efs) .'[v'.$n.'];';
             }
         }
 
-        $buffer .= " -filter_complex \"";
-
         if(!empty($effects)) {
-            $buffer .= join('', $effects) . ' ';
-            $buffer .= join('', array_keys($effects));
+            $movies[] = $fun();
         }
 
-        //TODO format=yuv420p to vars
-        $buffer .="concat=n={$movie->getFrameCount()}:v=1:a=0,format=yuv420p[v]\" ";
-
-        $buffer .= '-map "[v]" ';
-        $buffer .= "-y {$movie->getOutputFile()}";
+        $buffer = self::PROGRAM_NAME;
+        $moviesStr = join('|', array_map(function($m) use(&$movie){ return $m->getProcessedFile($movie); }, $movies));
+        // -f mpegts
+        $buffer .= "  -i 'concat:{$moviesStr}'  -y {$movie->getOutputFile()}"; //-c copy -bsf:a yuv420p
 
         return $buffer;
+    }
+
+
+    private function imagesToVideo() {
+
     }
 
     /**
@@ -187,45 +193,7 @@ class MovieMaker
         }
     }
 
-    /**
-     * @param  string $jsonString
-     * @return MovieMaker
-     */
-    public static function makeByJson( $jsonString ) {
-        $data = json_decode($jsonString, true);
 
-        $mv = new Movie([
-            'width'                 =>  $data['width'] ? : 0,
-            'height'                =>  $data['height'] ? : 0,
-            'outputFile'            =>  $data['outputFile'] ? : 0,
-            'processedExtension'    =>  $data['processedExtension'] ? : 0,
-
-            'frames'            =>  isset($data['frames']) ?
-                array_map(function($f){
-
-                    if(isset($f['text'])) {
-                        $f['text'] = new Text( $f['text']);
-                    }
-                    if(isset($f['effects'])) {
-                        $f['effects'] = [];
-                        //TODO
-                    }
-
-                    return new Frame($f);
-                }, $data['frames'])
-                : [],
-
-            'audioTracks'        =>  isset($data['audioTracks']) ?
-            array_map(function($a){
-                return new Audio($a);
-            }, $data['audioTracks'])
-            : []
-        ]);
-
-
-
-        return new MovieMaker($mv);
-    }
 
 
 

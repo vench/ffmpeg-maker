@@ -30,7 +30,7 @@ class Text
     /**
      * @var string
      */
-    protected $color = '#ffffff';
+    protected $color = '#000000';
 
 
     /**
@@ -44,9 +44,20 @@ class Text
     protected $fontSize = 24;
 
     /**
+     * Перенос но новую строку будет определен как новый объект текста
      * @var bool
      */
-    protected $wrap = true;
+    protected $wrap = false;
+
+    /**
+     * @var bool
+     */
+    protected $box = false;
+
+    /**
+     * @var string
+     */
+    protected $boxColor = '#ffffff';
 
 
     /**
@@ -171,6 +182,38 @@ class Text
     public function setWrap(bool $wrap)
     {
         $this->wrap = $wrap;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isBox(): bool
+    {
+        return $this->box;
+    }
+
+    /**
+     * @param bool $box
+     */
+    public function setBox(bool $box)
+    {
+        $this->box = $box;
+    }
+
+    /**
+     * @return string
+     */
+    public function getBoxColor(): string
+    {
+        return $this->boxColor;
+    }
+
+    /**
+     * @param string $boxColor
+     */
+    public function setBoxColor(string $boxColor)
+    {
+        $this->boxColor = $boxColor;
     }
 
 
