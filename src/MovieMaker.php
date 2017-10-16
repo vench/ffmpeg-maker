@@ -160,7 +160,7 @@ class MovieMaker
             }
         }
 
-        if(!empty($effects)) {
+        if($count > 0) {
             $movies[] = $fun();
         }
 
