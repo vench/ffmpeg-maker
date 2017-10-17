@@ -93,15 +93,25 @@ abstract class Input
     }
 
     /**
-     * @param string $exc
-     * @return mixed|string
+     * @param null|string $exc
+     * @param null|string $outputDir
+     * @param boolean $modeName
+     * @return string
      */
-    public function getFilePathExt($exc = 'png') {
-        $file = $this->getFilePath();
-        if(preg_match('/.+\/.+\.([a-zA-Z0-9]{2,4})/', $file, $math) && isset($math[1])) {
-            return str_replace('.' .$math[1], $this->getName() . '.' . $exc, $file);
+    public function getFilePathExt($exc = null, $outputDir = null, $modeName = false) {
+
+        $info =  pathinfo($this->getFilePath());
+        if(empty($outputDir)) {
+            $outputDir = $info['dirname'];
         }
-        return $file;
+        if(empty($exc)) {
+            $exc = $info['extension'];
+        }
+        $filename = $info['filename'];
+        if($modeName) {
+            $filename  .= $this->getName();
+        }
+        return rtrim($outputDir, '/') .DIRECTORY_SEPARATOR . $filename . '.' .$exc;
     }
 
     /**
@@ -130,5 +140,14 @@ abstract class Input
     protected function getUnique() {
         return ++ self::$index;
     }
+
+
+    /**
+     * @return string
+     */
+    public function getClassName() {
+        return static::class;
+    }
+
 
 }

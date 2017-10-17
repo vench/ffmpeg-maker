@@ -93,15 +93,13 @@ abstract class Frame extends Input
 
     /**
      * @param Movie $movie
-     * @return string
+     * @param bool $force
+     * @return mixed
      */
-    abstract public function getProcessedFile(Movie $movie);
+    abstract public function getProcessedFile(Movie $movie, $force = false);
 
 
-    /**
-     * @param Movie $movie
-     * @return string
-     */
-    abstract public function getProcessedCommand(Movie $movie);
+
+
 
 }

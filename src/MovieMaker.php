@@ -11,6 +11,7 @@ namespace LpMovieMaker;
 
 use LpMovieMaker\Models\Audio;
 use LpMovieMaker\Models\Frame;
+use LpMovieMaker\Models\ImageFrame;
 use LpMovieMaker\Models\Movie;
 use LpMovieMaker\Models\Text;
 use LpMovieMaker\Models\VideoFrame;
@@ -26,7 +27,7 @@ class MovieMaker
      * MovieMaker constructor.
      * @param Movie|null $movie
      */
-    function __construct(Movie $movie = null)  {
+    public function __construct(Movie $movie = null)  {
         if(is_null($movie)) {
             $movie = new Movie();
         }
@@ -48,31 +49,34 @@ class MovieMaker
     public function build() {
         $movie = $this->getMovie();
         foreach ($movie->getFrames() as $frame) {
-            if(!empty($command = $frame->getProcessedCommand($movie))) {
-                $this->exec($command);
-                $frame->setProcessed(true);
-            }
+            $this->processedCommand($frame);
         }
 
+        $this->buildMove();
+        $this->clean();
+    }
 
-        $command = $this->getMoveCommand();
-        $this->exec($command);
 
-        //add audio
-        $tmp = $movie->getOutputFile() . '.tmp';
-        if($command = $this->getAddAudioCommand($tmp)) {
-            $this->exec("mv {$movie->getOutputFile()} {$tmp}");
-            $this->exec($command);
+    /**
+     *
+     */
+    public function clean() {
+        $movie = $this->getMovie();
+        $scan = scandir( $movie->getOutputDirectory() );
+
+        foreach ($scan as $file) {
+            if(preg_match('/f_[0-9]+\./', $file)) {
+                $this->exec("rm {$movie->getOutputDirectory()}/{$file}");
+            }
         }
     }
 
 
-
     /**
-     * @param string $outputFile
+     * @param $outputFile
      * @return null|string
      */
-    public function getAddAudioCommand($outputFile){
+    private function getAddAudioCommand($outputFile){
         $movie = $this->getMovie();
         if(empty($movie->getAudioTracks())) {
             return null;
@@ -94,62 +98,67 @@ class MovieMaker
 
 
     /**
-     * @return string
+     *
      */
-    public function getMoveCommand(){
-        $buffer = self::PROGRAM_NAME;
+    private function buildMove(){
 
         $movie = $this->getMovie();
-
-        $effects = [];
-        $count = 0;
-
-        $fun = function() use(&$buffer, &$effects, &$movie, &$count) {
-            $buffer .= " -filter_complex \"";
-
-            if(!empty($effects)) {
-                $buffer .= join('', $effects) . ' ';
-                $buffer .= join('', array_keys($effects));
-            }
-
-            //TODO format=yuv420p to vars
-            $buffer .="concat=n={$count}:v=1:a=0,format=yuv420p[v]\" ";
-
-
-            $video =  new VideoFrame([
-                'filePath' => $movie->getOutputFile(),
-            ]);
-
-            $buffer .= '-map "[v]" ';
-            $buffer .= "-y {$video->getFilePathExt($movie->getProcessedExtensionVideo())}";
-            $this->exec($buffer);
-            $video->setProcessed(true);
-
-            $effects = [];
-            $buffer = self::PROGRAM_NAME;
-            $count = 0;
-
-            return $video;
-        };
-
         $movies = [];
-
+        $images = [];
 
         foreach ($movie->getFrames() as $frame) {
 
             if($frame instanceof VideoFrame) {
-                if($count > 0) {
-                    $movies[] = $fun();
+                if(!empty($images)) {
+                    $movies[] = $this->imagesToVideo($images);
+                    $images = [];
                 }
 
                 $movies[] = $frame;
                 continue;
             }
 
-            $count ++;
+            $images[] = $frame;
+        }
 
-            $buffer .= " -loop 1 -t {$frame->getDuration()} -i {$frame->getProcessedFile($movie)} ";
+        if(!empty($images)) {
+            $movies[] = $this->imagesToVideo($images);
+        }
 
+        $command = self::PROGRAM_NAME;
+        $video =  new VideoFrame([
+            'filePath' => $movie->getOutputFile(),
+        ]);
+        $outputFile = $video->getFilePathExt(null, null, true);
+
+        $moviesStr = join('|', array_map(function($m) use(&$movie){ return $m->getProcessedFile($movie); }, $movies));
+        // -f mpegts
+        $command .= "  -i 'concat:{$moviesStr}'  -y {$outputFile}"; //-c copy -bsf:a yuv420p
+        $this->exec($command);
+
+        //add audio
+       if($command = $this->getAddAudioCommand($outputFile)) {
+            $this->exec($command);
+        } else {
+            $this->exec("mv {$outputFile} {$movie->getOutputFile()}");
+        }
+    }
+
+
+    /**
+     * @param ImageFrame[] $frames
+     * @return VideoFrame
+     */
+    private function imagesToVideo($frames) {
+        $command = self::PROGRAM_NAME;
+        $effects = [];
+        $count = 0;
+
+        $movie = $this->getMovie();
+
+        foreach ($frames as $frame) {
+
+            $command .= " -loop 1 -t {$frame->getDuration()} -i {$frame->getProcessedFile($movie)} ";
             $efs = [];
             foreach($frame->getEffects() as $ef) {
                 $efs[] = $ef->getCommands();
@@ -160,21 +169,27 @@ class MovieMaker
             }
         }
 
-        if($count > 0) {
-            $movies[] = $fun();
+        $command .= " -filter_complex \"";
+
+        if(!empty($effects)) {
+            $command .= join('', $effects) . ' ';
+            $command .= join('', array_keys($effects));
         }
+        //TODO format=yuv420p to vars
+        $count = count($frames);
+        $command .= "concat=n={$count}:v=1:a=0,format=yuv420p[v]\" ";
 
-        $buffer = self::PROGRAM_NAME;
-        $moviesStr = join('|', array_map(function($m) use(&$movie){ return $m->getProcessedFile($movie); }, $movies));
-        // -f mpegts
-        $buffer .= "  -i 'concat:{$moviesStr}'  -y {$movie->getOutputFile()}"; //-c copy -bsf:a yuv420p
+        $video =  new VideoFrame([
+            'filePath' => $movie->getOutputFile(),
+        ]);
 
-        return $buffer;
-    }
+        $command .= '-map "[v]" ';
+        $command .= "-y {$video->getProcessedFile($movie, true)}";
 
+        $this->exec($command);
+        $video->setProcessed(true);
 
-    private function imagesToVideo() {
-
+        return $video;
     }
 
     /**
@@ -193,8 +208,95 @@ class MovieMaker
         }
     }
 
+    /**
+     * @param Frame $frame
+     */
+    private function processedCommand(Frame $frame) {
+        if(!empty($command = $this->getProcessedCommand($frame))) {
+            $this->exec($command);
+            $frame->setProcessed(true);
+        }
+    }
 
+    /**
+     * @param Frame $frame
+     * @return string
+     */
+    private function getProcessedCommand(Frame $frame) {
 
+        switch ($frame->getClassName()) {
+            case VideoFrame::class:
+                return $this->getProcessedCommandVideo($frame);
+            case ImageFrame::class:
+                return $this->getProcessedCommandImage($frame);
+        }
 
+        return '';
+    }
+
+    /**
+     * @param VideoFrame $frame
+     * @return string
+     */
+    private function getProcessedCommandVideo(VideoFrame $frame) {
+        $movie = $this->getMovie();
+        $filters = [];
+        if($movie->needResize()) {
+            $filters[] = "scale={$movie->getWidth()}:{$movie->getHeight()}";
+        }
+        $duration = $frame->getDuration() > 0 ? $frame->getDuration() : 1;
+        $command = MovieMaker::PROGRAM_NAME;
+        if($duration) {
+            $command .= "  -t {$duration} ";
+        }
+        $command .= "  -i {$frame->getFilePath()} ";
+        $command .= '-vf "'. join(',', $filters) .'" ';
+        //TODO to config
+        //$command .= ' -bsf:v h264_mp4toannexb -f mpegts ';
+
+        $command .= "-y {$frame->getProcessedFile($movie, true)}";
+        return $command;
+    }
+
+    /**
+     * @param ImageFrame $frame
+     * @return string
+     */
+    private function getProcessedCommandImage(ImageFrame $frame) {
+        $movie = $this->getMovie();
+        //TODO ['setsar=1:1', 'setdar=4:3'] to options
+        $filters = ['setsar=1:1', 'setdar=4:3'];
+        if($movie->needResize()) {
+            $filters[] = "scale={$movie->getWidth()}:{$movie->getHeight()}";
+        }
+
+        if(!is_null($text = $frame->getText())) {
+            $values = $text->isWrap() ? explode("\n", $text->getValue()) : [$text->getValue()];
+            $posY =  $text->getPosY();
+            foreach ($values as $value) {
+                $value = trim($value);
+                $fontfile = $text->getFontLink() ? "fontfile={$text->getFontLink()}:" : '';
+                $fontcolor = $text->getColor() ? ":fontcolor={$text->getColor()}" : '';
+                $fontsize = $text->getColor() ? ":fontsize={$text->getFontSize()}" : '';
+                $x = $text->getPosX() ? ":x={$text->getPosX()}" : '';
+                $y = $posY ? ":y={$posY}" : '';
+                $box = $text->isBox() ? ":box=1:boxcolor={$text->getBoxColor()}:boxborderw=5" : '';
+                $drawtext = "drawtext={$fontfile}text='{$value}'{$fontcolor}{$fontsize}{$x}{$y}{$box}";
+                $filters[] = $drawtext;
+                $posY += ($text->getFontSize() ? $text->getFontSize() : 0) + 15;
+            }
+        }
+
+        if(empty($filters)) {
+            return null;
+        }
+
+        $command = MovieMaker::PROGRAM_NAME;
+        $command .= " -i {$frame->getFilePath()} ";
+        $command .= '-vf "'. join(',', $filters) .'" ';
+        $command .= "-y {$frame->getProcessedFile($movie, true)}";
+
+        return $command;
+    }
 
 }

@@ -48,6 +48,11 @@ class Movie
      */
     protected $outputFile = '';
 
+    /**
+     * @var string
+     */
+    protected $outputDirectory = '';
+
 
     /**
      * Movie constructor.
@@ -212,6 +217,22 @@ class Movie
     public function setProcessedExtensionVideo(string $processedExtensionVideo)
     {
         $this->processedExtensionVideo = $processedExtensionVideo;
+    }
+
+    /**
+     * @return string
+     */
+    public function getOutputDirectory(): string
+    {
+        return $this->outputDirectory;
+    }
+
+    /**
+     * @param string $outputDirectory
+     */
+    public function setOutputDirectory(string $outputDirectory)
+    {
+        $this->outputDirectory = $outputDirectory;
     }
 
 

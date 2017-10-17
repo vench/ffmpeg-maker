@@ -7,6 +7,7 @@ use LpMovieMaker\MovieMaker;
 use LpMovieMaker\Models\Movie;
 use LpMovieMaker\Models\ImageFrame;
 use LpMovieMaker\Models\FadeEffect;
+use LpMovieMaker\Models\ZoomEffect;
 use LpMovieMaker\Models\Text;
 use LpMovieMaker\Models\Audio;
 use LpMovieMaker\Models\VideoFrame;
@@ -33,9 +34,10 @@ class MovieMakerTest extends PHPUnit_Framework_TestCase
     public function testCommand() {
 
         $mv = new Movie([
-            'width'         => 640,
-            'height'        => 480,
-            'outputFile'    =>  $this->getSourcePath() . 'out/movie.mp4',
+            'width'             => 640,
+            'height'            => 480,
+            'outputFile'        =>  $this->getSourcePath() . 'out/movie.mp4',
+            'outputDirectory'   => $this->getSourcePath() . 'out',
         ]);
 
         $mv->addAudio(new Audio([
@@ -120,11 +122,12 @@ xsxs",
             'width'         => 640,
             'height'        => 480,
             'outputFile'    =>  $this->getSourcePath() . 'out/join.mp4',
+            'outputDirectory'   => $this->getSourcePath() . 'out',
         ]);
 
         $mv->addFrame(new ImageFrame([
             'filePath'  => $this->getSourcePath() . 'german3.jpg',
-            'duration'  => 5,
+            'duration'  => 4,
             'effects'   => [
                 FadeEffect::makeIn(1, 0)
             ],
@@ -146,6 +149,13 @@ xsxs",
                 FadeEffect::makeIn(1, 0)
             ],
         ]));
+       $mv->addFrame(new ImageFrame([
+            'filePath'  => $this->getSourcePath() . 'image3.jpg',
+            'duration'  => 3,
+            'effects'   => [
+                FadeEffect::makeIn(1, 0)
+            ],
+        ]));
 
         $mv->addFrame(new VideoFrame([
             'filePath'  => $this->getSourcePath() . 'videoplayback.mp4',
@@ -154,11 +164,19 @@ xsxs",
             'effects'   => [
                 FadeEffect::makeIn(1, 0)
             ],
-        ])); /**/
-        $mv->addAudio(new Audio([
+        ]));
+        $mv->addFrame(new ImageFrame([
+            'filePath'  => $this->getSourcePath() . 'image4.jpg',
+            'duration'  => 10,
+            'effects'   => [
+                new ZoomEffect(10)
+            ],
+        ]));
+
+       $mv->addAudio(new Audio([
             'filePath'  => $this->getSourcePath() . 'sone.mp3',
             'duration'  => 30,
-        ]));
+        ])); /* */
 
 
 
