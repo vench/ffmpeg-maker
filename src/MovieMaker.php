@@ -156,17 +156,18 @@ class MovieMaker
 
         $movie = $this->getMovie();
 
-        foreach ($frames as $frame) {
+        foreach ($frames as $n => $frame) {
 
             $command .= " -loop 1 -t {$frame->getDuration()} -i {$frame->getProcessedFile($movie)} ";
             $efs = [];
             foreach($frame->getEffects() as $ef) {
                 $efs[] = $ef->getCommands();
             }
-            if(!empty($efs)) {
-                $n = count($effects);
-                $effects['[v' . $n.']'] = '['.$n.':v]' . join(',', $efs) .'[v'.$n.'];';
+            if(empty($efs)) {
+                //$n = count($effects);
+                $efs[] = "trim=duration={$frame->getDuration()}";
             }
+            $effects['[v' . $n.']'] = '['.$n.':v]' . join(',', $efs) .'[v'.$n.'];';
         }
 
         $command .= " -filter_complex \"";
