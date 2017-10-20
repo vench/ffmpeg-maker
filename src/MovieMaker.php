@@ -53,7 +53,7 @@ class MovieMaker
         }
 
         $this->buildMove();
-        //$this->clean();
+        $this->clean();
     }
 
 
