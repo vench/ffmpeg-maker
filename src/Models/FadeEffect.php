@@ -12,7 +12,7 @@ namespace LpMovieMaker\Models;
  * Class ZoomEffect
  * @package LpMovieMaker\Models
  */
-class ZoomEffect extends Effect
+class FadeEffect extends Effect
 {
 
     /**
