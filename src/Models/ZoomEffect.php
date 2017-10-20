@@ -47,7 +47,7 @@ class ZoomEffect extends Effect
     public function getCommands()
     {
         $d = $this->getDuration() * $this->getFps();
-        return "zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':d={$d},trim=duration={$this->getDuration()},scale={$this->getScale()},setdar=dar=4:3";
+        return "zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0050))':d={$d},trim=duration={$this->getDuration()},scale={$this->getScale()},setdar=dar=4:3";
     }
 
     /**
