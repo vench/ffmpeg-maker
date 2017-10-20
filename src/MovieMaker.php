@@ -24,6 +24,12 @@ class MovieMaker
 
 
     /**
+     * @var bool
+     */
+    protected $printCommand = false;
+
+
+    /**
      * MovieMaker constructor.
      * @param Movie|null $movie
      */
@@ -199,13 +205,15 @@ class MovieMaker
      */
     private function exec($command) {
 
-        echo $command, PHP_EOL;
+        if($this->isPrintCommand()) {
+            echo $command, PHP_EOL;
+        }
 
         $ret = null;
         $cmd = system($command, $ret);
 
         if($ret !== 0) {
-            throw new \Exception("Returned an error: $cmd");
+            throw new \Exception("Returned an error: {$cmd} {$ret} : {$command}");
         }
     }
 
@@ -299,5 +307,23 @@ class MovieMaker
 
         return $command;
     }
+
+    /**
+     * @return bool
+     */
+    public function isPrintCommand(): bool
+    {
+        return $this->printCommand;
+    }
+
+    /**
+     * @param bool $printCommand
+     */
+    public function setPrintCommand(bool $printCommand)
+    {
+        $this->printCommand = $printCommand;
+    }
+
+
 
 }
