@@ -24,12 +24,6 @@ class MovieMaker
 
 
     /**
-     * @var bool
-     */
-    protected $printCommand = false;
-
-
-    /**
      * MovieMaker constructor.
      * @param Movie|null $movie
      */
@@ -59,7 +53,7 @@ class MovieMaker
         }
 
         $this->buildMove();
-        $this->clean();
+        //$this->clean();
     }
 
 
@@ -190,7 +184,7 @@ class MovieMaker
             'filePath' => $movie->getOutputFile(),
         ]);
 
-        $command .= '-map "[v]" ';
+        $command .= '-map "[v]" -vb 20M ';
         $command .= "-y {$video->getProcessedFile($movie, true)}";
 
         $this->exec($command);
@@ -205,15 +199,13 @@ class MovieMaker
      */
     private function exec($command) {
 
-        if($this->isPrintCommand()) {
-            echo $command, PHP_EOL;
-        }
+        echo $command, PHP_EOL;
 
         $ret = null;
         $cmd = system($command, $ret);
 
         if($ret !== 0) {
-            throw new \Exception("Returned an error: {$cmd} {$ret} : {$command}");
+            throw new \Exception("Returned an error: $cmd");
         }
     }
 
@@ -307,23 +299,5 @@ class MovieMaker
 
         return $command;
     }
-
-    /**
-     * @return bool
-     */
-    public function isPrintCommand(): bool
-    {
-        return $this->printCommand;
-    }
-
-    /**
-     * @param bool $printCommand
-     */
-    public function setPrintCommand(bool $printCommand)
-    {
-        $this->printCommand = $printCommand;
-    }
-
-
 
 }
