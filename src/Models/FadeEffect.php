@@ -2,18 +2,30 @@
 /**
  * Created by PhpStorm.
  * User: vench
- * Date: 17.10.17
- * Time: 12:55
+ * Date: 11.10.17
+ * Time: 10:31
  */
 
 namespace LpMovieMaker\Models;
 
+
 /**
- * Class ZoomEffect
+ * Class FadeEffect
  * @package LpMovieMaker\Models
  */
 class FadeEffect extends Effect
 {
+
+
+    const TYPE_IN = 'in';
+
+    const TYPE_OUT = 'out';
+
+    /**
+     * @var string
+     */
+    protected $type = '';
+
 
     /**
      * @var int
@@ -23,35 +35,22 @@ class FadeEffect extends Effect
     /**
      * @var int
      */
-    protected $fps = 25;
+    protected $startTime = 0;
 
-    protected $scale;
 
     /**
-     * ZoomEffect constructor.
+     * FadeEffect constructor.
+     * @param $type
      * @param int $duration
-     * @param int $fps
+     * @param int $startTime
      */
-    public function __construct($duration = 1, $fps = 25, $scale = null)
+    public function __construct($type, $duration = 1, $startTime = 0)
     {
+        $this->type = $type;
         $this->duration = $duration;
-        $this->fps = $fps;
-        if(is_null($scale)) {
-            $scale = '640x480';
-        }
-
-        $this->scale = $scale;
+        $this->startTime = $startTime;
     }
 
-
-    /**
-     * @return string
-     */
-    public function getCommands()
-    {
-        $d = $this->getDuration() * $this->getFps();
-        return "zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0050))':d={$d},trim=duration={$this->getDuration()},scale={$this->getScale()},setdar=dar=4:3";
-    }
 
     /**
      * @return int
@@ -72,36 +71,60 @@ class FadeEffect extends Effect
     /**
      * @return int
      */
-    public function getFps(): int
+    public function getStartTime(): int
     {
-        return $this->fps;
+        return $this->startTime;
     }
 
     /**
-     * @param int $fps
+     * @param int $startTime
      */
-    public function setFps(int $fps)
+    public function setStartTime(int $startTime)
     {
-        $this->fps = $fps;
+        $this->startTime = $startTime;
     }
 
     /**
-     * @return null|string
+     * @return string
      */
-    public function getScale()
+    public function getType(): string
     {
-        return $this->scale;
+        return $this->type;
     }
 
     /**
-     * @param null|string $scale
+     * @param string $type
      */
-    public function setScale($scale)
+    public function setType(string $type)
     {
-        $this->scale = $scale;
+        $this->type = $type;
     }
 
 
+    /**
+     * @return string
+     */
+    public function getCommands()
+    {
+        $st = $this->getStartTime();
+        return "fade=t={$this->getType()}:st={$st}:d={$this->getDuration()}";
+    }
 
+    /**
+     * @param int $duration
+     * @param int $startTime
+     * @return FadeEffect
+     */
+    public static function makeIn($duration = 1, $startTime = 0) {
+        return new static(static::TYPE_IN, $duration, $startTime);
+    }
 
+    /**
+     * @param int $duration
+     * @param int $startTime
+     * @return FadeEffect
+     */
+    public static function makeOut($duration = 1, $startTime = 0) {
+        return new static(static::TYPE_OUT, $duration, $startTime);
+    }
 }
