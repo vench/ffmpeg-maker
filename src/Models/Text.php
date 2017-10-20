@@ -12,20 +12,33 @@ namespace LpMovieMaker\Models;
 class Text
 {
 
+    const TEXT_POSITION_LEFT = 5;
+
+    const TEXT_POSITION_TOP = 1;
+
+    const TEXT_POSITION_CENTER = 2;
+
+    const TEXT_POSITION_RIGHT = 3;
+
+    const TEXT_POSITION_BOTTOM = 4;
+
+    const TEXT_MARGIN = 0.1;
+
+
     /**
      * @var string
      */
     protected $value = '';
 
     /**
-     * @var int
+     * @var string
      */
-    protected $posX = 0;
+    protected $posX = '0';
 
     /**
-     * @var int
+     * @var string
      */
-    protected $posY = 0;
+    protected $posY = '0';
 
     /**
      * @var string
@@ -89,7 +102,7 @@ class Text
     }
 
     /**
-     * @return int
+     * @return string
      */
     public function getPosX()
     {
@@ -97,7 +110,7 @@ class Text
     }
 
     /**
-     * @param int $posX
+     * @param string $posX
      */
     public function setPosX($posX)
     {
@@ -105,7 +118,7 @@ class Text
     }
 
     /**
-     * @return int
+     * @return string
      */
     public function getPosY()
     {
@@ -113,7 +126,7 @@ class Text
     }
 
     /**
-     * @param int $posY
+     * @param string $posY
      */
     public function setPosY($posY)
     {
@@ -217,6 +230,32 @@ class Text
     }
 
 
+    /**
+     * @param int $horizontal
+     * @param int $vertical
+     * @see TEXT_POSITION_*
+     */
+    public function setTextPosition($horizontal, $vertical) {
+        $margin = self::TEXT_MARGIN;
+
+        $x =  "(w * {$margin})";//LEFT
+        $y = "(h * {$margin})";//TOP
+
+        if($horizontal == self::TEXT_POSITION_CENTER) {
+            $x = "(w / 2 - text_w / 2)";
+        } else if($horizontal == self::TEXT_POSITION_RIGHT) {
+            $x = "((w - text_w) - (w * {$margin}))";
+        }
+
+        if($vertical == self::TEXT_POSITION_CENTER) {
+            $y = "(h / 2 - text_h / 2)";
+        } else if($vertical == self::TEXT_POSITION_BOTTOM) {
+            $y = "((h - text_h) - (h * {$margin}))";
+        }
+
+        $this->setPosX($x);
+        $this->setPosY($y);
+    }
 
 
 }
