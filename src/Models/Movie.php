@@ -120,6 +120,23 @@ class Movie
         $this->height = $height;
     }
 
+    /**
+     * @param string $size
+     */
+    public function setSizeStr($size) {
+        if(!empty($size) && preg_match('/[0-9]+x[0-9]+/i', $size)) {
+            list($width, $height) = explode('x', $size);
+            $this->setWidth($width);
+            $this->setHeight($height);
+        }
+    }
+
+    /**
+     * @return string
+     */
+    public function getSizeStr() {
+        return sprintf("%dx%d", $this->getWidth(), $this->getHeight());
+    }
 
     /**
      * @return Audio[]

@@ -22,15 +22,22 @@ class ZoomEffect extends Effect
      */
     protected $fps = 25;
 
+    protected $scale;
+
     /**
      * ZoomEffect constructor.
      * @param int $duration
      * @param int $fps
      */
-    public function __construct($duration = 1, $fps = 25)
+    public function __construct($duration = 1, $fps = 25, $scale = null)
     {
         $this->duration = $duration;
         $this->fps = $fps;
+        if(is_null($scale)) {
+            $scale = '640x480';
+        }
+
+        $this->scale = $scale;
     }
 
 
@@ -40,7 +47,7 @@ class ZoomEffect extends Effect
     public function getCommands()
     {
         $d = $this->getDuration() * $this->getFps();
-        return "zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':d={$d},trim=duration={$this->getDuration()},scale=640x480,setdar=dar=4:3";
+        return "zoompan=z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0050))':d={$d},trim=duration={$this->getDuration()},scale={$this->getScale()},setdar=dar=4:3";
     }
 
     /**
@@ -74,6 +81,23 @@ class ZoomEffect extends Effect
     {
         $this->fps = $fps;
     }
+
+    /**
+     * @return null|string
+     */
+    public function getScale()
+    {
+        return $this->scale;
+    }
+
+    /**
+     * @param null|string $scale
+     */
+    public function setScale($scale)
+    {
+        $this->scale = $scale;
+    }
+
 
 
 
