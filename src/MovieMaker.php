@@ -205,7 +205,7 @@ class MovieMaker
         $cmd = system($command, $ret);
 
         if($ret !== 0) {
-            throw new \Exception("Returned an error: $cmd");
+            throw new \Exception("Returned an error: {$cmd}, command: {$command}, {$ret}");
         }
     }
 
